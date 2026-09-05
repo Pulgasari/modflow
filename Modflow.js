@@ -1,11 +1,11 @@
 // Modflow.js
 
 import { createModuleProxy as createProxy } from './proxy.js';
-import { ModflowUnknownModuleError.} from './errors.js';
-import { normalizeDefinition } from './normalize.js';
-import { Scheduler } from './Scheduler.js';
+import { ModflowUnknownModuleError }        from './errors.js';
+import { normalizeDefinition }              from './normalize.js';
+import { Scheduler }                        from './Scheduler.js';
 
-function normalizeModule(module) {
+function normalizeModule (module) {
 
   if (
     module &&
@@ -52,7 +52,6 @@ export class Modflow {
   scheduler   = new Scheduler;
 
   constructor (options = {}) {
-
     this.config = {
       preloadStrategy : options.preloadStrategy ?? 'modulepreload',
       debug           : options.debug           ?? false,
@@ -66,7 +65,7 @@ export class Modflow {
   // DEFINE
   // ─────────────────────────────────────────────
 
-  define(config = {}) {
+  define (config = {}) {
 
     if (
       config === null ||
@@ -81,28 +80,16 @@ export class Modflow {
 
       const definition = normalizeDefinition(name, input);
 
-      this.definitions.set(
-        name,
-        definition
-      );
-
+      this.definitions.set(name, definition);
       this.#ensureEntry(name);
+      this.#emit('defined', {name, definition});
 
-      this.#emit('defined', {
-        name,
-        definition,
-      });
-
-      /*
-       * Schedule automatic flows.
-       */
+      // schedule automatic flows
       if (definition.flow !== 'lazy') {
         this.#schedule(name);
       }
 
-      /*
-       * Explicit preload.
-       */
+      // explicit preload
       if (definition.preload) {
         this.preload(name);
       }
@@ -116,7 +103,7 @@ export class Modflow {
   // HAS
   // ─────────────────────────────────────────────
 
-  has(name) {
+  has (name) {
     return this.definitions.has(name);
   }
 
@@ -163,10 +150,7 @@ export class Modflow {
     entry.state     = 'loading';
     entry.startedAt = performance.now();
 
-    this.#emit('loading', {
-      name,
-      definition,
-    });
+    this.#emit('loading', { name, definition });
 
     entry.promise =
       this.#loadWithDependencies(
@@ -198,10 +182,7 @@ export class Modflow {
         entry.finishedAt = performance.now();
 
         this.#emit('failed', {
-          name,
-          definition,
-          error,
-        });
+          name, definition, error });
 
         /*
          * Important:
@@ -419,10 +400,7 @@ export class Modflow {
           );
         }
 
-        this.config.onError?.(
-          error,
-          definition
-        );
+        this.config.onError?.(error,definition);
       })
     );
   }
@@ -432,23 +410,12 @@ export class Modflow {
   // DEPENDENCIES
   // ─────────────────────────────────────────────
 
-  async #loadWithDependencies(
-    name,
-    definition
-  ) {
-
+  async #loadWithDependencies (name, definitios) {
     if (definition.deps?.length) {
-
-      await Promise.all(
-        definition.deps.map(
-          dep => this.load(dep)
-        )
-      );
+      await Promise.all(definition.deps.map(dep => this.load(dep)));
     }
 
-    return this.#import(
-      definition
-    );
+    return this.#import(definition);
   }
 
 
@@ -516,30 +483,15 @@ export class Modflow {
   // URL
   // ─────────────────────────────────────────────
 
-  #resolveURL(url) {
-
-    if (
-      typeof window === 'undefined'
-    ) {
-      return url;
-    }
-
-    return new URL(
-      url,
-      document.baseURI
-    ).href;
+  #resolveURL (url) {
+    if (typeof window === 'undefined') return url;
+    return new URL(url, document.baseURI).href;
   }
 
 
-  #hasPreload(href, rel = 'modulepreload') {
-
-    if (typeof document === 'undefined') {
-      return false;
-    }
-
-    return !!document.querySelector(
-      `link[rel="${rel}"][href="${CSS.escape(href)}"]`
-    );
+  #hasPreload (href, rel = 'modulepreload') {
+    if (typeof document === 'undefined') return false;
+    return !!document.querySelector(`link[rel="${rel}"][href="${CSS.escape(href)}"]`);     
   }
 
 
@@ -547,8 +499,7 @@ export class Modflow {
   // EVENTS
   // ─────────────────────────────────────────────
 
-  #emit(type, data) {
-
+  #emit (type, data) {
     this.config.onEvent?.({
       type,
       time: performance.now(),
@@ -561,8 +512,8 @@ export class Modflow {
   // PROXY
   // ─────────────────────────────────────────────
 
-  proxy() {
+  proxy () {
     return createProxy(this);
   }
 
-          }
+}
