@@ -1,7 +1,7 @@
 // proxy.js
 
-const isFn     = sth => typeof sth      === 'function';
-const isSymbol = sth => typeof property === 'symbol';
+const isFn     = sth => typeof sth === 'function';
+const isSymbol = sth => typeof sth === 'symbol';
 
 function createModuleProxy (modflow) {
   return new Proxy (modflow, {
