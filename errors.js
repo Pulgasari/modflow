@@ -2,7 +2,7 @@
 
 export class ModflowError extends Error {
 
-  constructor(message, { code = 'MODFLOW_ERROR', cause } = {}) {
+  constructor (message, { code = 'MODFLOW_ERROR', cause } = {}) {
     super(message, { cause });
     this.name = 'ModflowError';
     this.code = code;
@@ -12,7 +12,7 @@ export class ModflowError extends Error {
 
 export class ModflowDefinitionError extends ModflowError {
 
-  constructor(message, options = {}) {
+  constructor (message, options = {}) {
     super(message, {
       ...options,
       code: 'MODFLOW_DEFINITION'
@@ -25,7 +25,7 @@ export class ModflowDefinitionError extends ModflowError {
 
 export class ModflowUnknownModuleError extends ModflowError {
 
-  constructor(name) {
+  constructor (name) {
     super(`Module "${name}" was not defined in modflow.`, {
       code: 'MODFLOW_UNKNOWN_MODULE'
     });
