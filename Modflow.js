@@ -203,9 +203,7 @@ export class Modflow {
     try {
       const definition = this.#getDefinitionOrThrow(name);
       return callback(definition);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    } catch (error) { return Promise.reject(error); }
   }
 
   #injectResourceHint (name, rel, extraProps = {}, eventName = `${rel}ed`) {
@@ -261,11 +259,7 @@ export class Modflow {
   }
 
   #emit (type, data) {
-    this.config.onEvent?.({
-      type,
-      time: performance.now(),
-      ...data,
-    });
+    this.config.onEvent?.({ type, time: performance.now(), ...data });
   }
 
   proxy () { 
