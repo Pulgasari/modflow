@@ -1,109 +1,59 @@
 // proxy.js
 
-export function createModuleProxy(modflow) {
+const isFn     = sth => typeof sth === 'function';
+const isSymbol = sth => typeof sth === 'symbol';
 
-  return new Proxy(modflow, {
-
-    get(target, property, receiver) {
-
-      // symbols / inspect / native internals
-      if (typeof property === 'symbol') {
-        return Reflect.get(target, property, receiver);
-      }
-
-      // public Modflow API:
-      // mod.define(...)
-      // mod.load(...)
-      // mod.preload(...)
-      // mod.state(...)
-      if (property in target) {
-        return Reflect.get(target, property, receiver);
-      }
-
-      // unknown module
-      if (!target.has(property)) {
-        return undefined;
-      }
-
-      return createModuleStub(
-        target,
-        property
-      );
+function createModuleProxy (modflow) {
+  return new Proxy (modflow, {
+    get (target, property, receiver) {
+      // case 1: symbols / inspect / native internals
+      // case 2: public Modflow API
+      // case 3: unknown module
+      return (isSymbol(property))  ? Reflect.get(target, property, receiver)    
+           : (property in target)  ? Reflect.get(target, property, receiver)
+           : !target.has(property) ? undefined;
+           : createModuleStub(target, property);
     }
   });
 }
 
 
-function createModuleStub(modflow, name) {
+function createModuleStub (modflow, name) {
 
-  const load = () =>
-    modflow.load(name);
+  const load = () => modflow.load(name);
 
-  return new Proxy(function () {}, {
+  return new Proxy (function(){}, {
 
-    get(_, property) {
+    get (_, property) {
 
-      /*
-       * Promise assimilation:
-       *
-       * await mod.foo
-       *
-       * JavaScript asks for `.then`.
-       */
+      // promise assimilation
       if (property === 'then') {
-        return (resolve, reject) =>
-          load().then(resolve, reject);
+        return (resolve, reject) => load().then(resolve, reject);
       }
 
-      /*
-       * Useful debugging.
-       */
+      // useful debugging
       if (property === 'toString') {
-        return () =>
-          `[Modflow module: ${name}]`;
+        return () => `[Modflow module: ${name}]`;
       }
 
-      /*
-       * Direct properties:
-       *
-       * mod.foo.bar(...)
-       */
+      // direct properties
       return (...args) =>
         load().then(module => {
-
-          const value =
-            module?.[property] ??
-            module?.default ??
-            module;
-
-          if (typeof value !== 'function') {
-            return value;
-          }
-
-          return value.apply(module, args);
+          const value = module?.[property] ?? module?.default ?? module;
+          return !isFn(value) ? value : value.apply(module, args);
         });
     },
 
-    apply(_, __, args) {
-
-      /*
-       * mod.foo(...)
-       */
+    apply (_, __, args) {
       return load().then(module => {
-
-        const callable =
-          typeof module === 'function'
-            ? module
-            : module?.default;
-
-        if (typeof callable !== 'function') {
-          throw new TypeError(
-            `Module "${name}" is not callable.`
-          );
-        }
-
+        const callable = isFn(module) ? module : module?.default;
+        if (!isFn(callable)) throw new TypeError(`Module "${name}" is not callable.`);      
         return callable(...args);
       });
     }
   });
-          }
+}
+
+// :::::: EXPORT
+
+export { createModuleProxy };

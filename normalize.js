@@ -1,8 +1,6 @@
 // normalize.js
 
-import {
-  ModflowDefinitionError,
-} from './errors.js';
+import { ModflowDefinitionError } from './errors.js';
 
 const FLOWS = new Set([
   'eager',
@@ -11,47 +9,36 @@ const FLOWS = new Set([
   'interaction',
 ]);
 
-const isObject = value =>
-  value !== null &&
-  typeof value === 'object' &&
-  !Array.isArray(value);
+const isArray  = sth => Array.isArray(sth);
+const isFn     = sth => typeof sth === 'function';
+const isNumber = sth => typeof sth === 'number';
+const isObject = sth => sth !== null && typeof sth === 'object' && !Array.isArray(sth);
+const isString = sth => typeof sth === 'string';
+const isSymbol = sth => typeof sth === 'symbol';
 
-export function normalizeDefinition(name, input) {
+function normalizeDefinition (name, input) {
 
-  const options = typeof input === 'string'
-    ? { url: input }
-    : input;
+  const options = isString(input) ? { url: input } : input;
 
   if (!isObject(options)) {
-    throw new ModflowDefinitionError(
-      `Invalid definition for module "${name}".`
-    );
+    throw new ModflowDefinitionError (`Invalid definition for module "${name}".`);
   }
 
-  if (!options.url || typeof options.url !== 'string') {
-    throw new ModflowDefinitionError(
-      `Module "${name}" requires a string "url".`
-    );
+  if (!options.url || !isString(options.url)) {
+    throw new ModflowDefinitionError(`Module "${name}" requires a string "url".`);
   }
 
-  const flow = options.flow ?? 'lazy';
-
-  const validFlow =
-    typeof flow === 'number' ||
-    FLOWS.has(flow);
+  const flow      = options.flow ?? 'lazy';
+  const validFlow = isNumber(flow) || FLOWS.has(flow);
 
   if (!validFlow) {
-    throw new ModflowDefinitionError(
-      `Invalid flow "${String(flow)}" for module "${name}".`
-    );
+    throw new ModflowDefinitionError (`Invalid flow "${String(flow)}" for module "${name}".`);
   }
 
   const deps = options.deps ?? [];
 
-  if (!Array.isArray(deps)) {
-    throw new ModflowDefinitionError(
-      `Dependencies for module "${name}" must be an array.`
-    );
+  if (!isArray(deps)) {
+    throw new ModflowDefinitionError (`Dependencies for module "${name}" must be an array.`);
   }
 
   return {
@@ -72,4 +59,6 @@ export function normalizeDefinition(name, input) {
     // useful for diagnostics
     metadata   : options.metadata ?? null,
   };
-    }
+}
+
+export { normalizeDefinition };
