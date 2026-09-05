@@ -1,40 +1,47 @@
 // Scheduler.js
 
-export class Scheduler {
+const isArray  = sth => Array.isArray(sth);
+const isFn     = sth => typeof sth === 'function';
+const isNumber = sth => typeof sth === 'number';
+const isObject = sth => sth !== null && typeof sth === 'object' && !Array.isArray(sth);
+const isString = sth => typeof sth === 'string';
+const isSymbol = sth => typeof sth === 'symbol';
+
+const
+onEvent   = (...args) => window.   addEventListener(...args),
+offEvent  = (...args) => window.removeEventListener(...args),     
+onEvents  = (events, ...rest) => for (const event of events) onEvent  (event, ...rest),        
+offEvents = (events, ...rest) => for (const event of events) offEvent (event, ...rest);
+
+class Scheduler {
 
   #timers = new Set;
 
-  schedule(flow, callback) {
+  schedule (flow, callback) {
 
-    if (typeof callback !== 'function') {
-      throw new TypeError('Scheduler callback must be a function.');
-    }
+    if (!isFn(callback))
+    throw new TypeError('Scheduler callback must be a function.');
 
-    if (flow === 'eager') {
-      return callback();
-    }
+    if (flow === 'eager')
+    return callback();
 
-    if (flow === 'idle') {
-      return this.#idle(callback);
-    }
+    if (flow === 'idle')
+    return this.#idle(callback);
 
-    if (flow === 'interaction') {
-      return this.#interaction(callback);
-    }
+    if (flow === 'interaction')
+    return this.#interaction(callback);
 
-    if (typeof flow === 'number') {
-      return this.#timeout(callback, flow);
-    }
+    if (isNumber(flow))
+    return this.#timeout(callback, flow);
 
     // lazy should never be scheduled automatically
-    if (flow === 'lazy') {
-      return null;
-    }
+    if (flow === 'lazy')
+    return null;
 
     return null;
   }
 
-  #idle(callback) {
+  #idle (callback) {
 
     if (
       typeof window !== 'undefined' &&
@@ -49,7 +56,7 @@ export class Scheduler {
     return this.#timeout(callback, 200);
   }
 
-  #interaction(callback) {
+  #interaction (callback) {
 
     if (typeof window === 'undefined') {
       return this.#timeout(callback, 0);
@@ -65,48 +72,26 @@ export class Scheduler {
     let fired = false;
 
     const run = () => {
-
       if (fired) return;
       fired = true;
-
-      for (const event of events) {
-        window.removeEventListener(event, run, { capture: true });
-      }
-
+      offEvents(events, run, { capture: true });
       callback();
     };
-
-    for (const event of events) {
-      window.addEventListener(
-        event,
-        run,
-        { once: true, capture: true, passive: true }
-      );
-    }
+    
+    onEvents(events, run, { once: true, capture: true, passive: true });
 
     return () => {
-
       if (fired) return;
-
       fired = true;
-
-      for (const event of events) {
-        window.removeEventListener(
-          event,
-          run,
-          { capture: true }
-        );
-      }
+      offEvents(events, run, { capture: true });
     };
   }
 
-  #timeout(callback, delay) {
+  #timeout (callback, delay) {
 
     const id = setTimeout(() => {
-
       this.#timers.delete(id);
       callback();
-
     }, Math.max(0, delay));
 
     this.#timers.add(id);
@@ -117,13 +102,11 @@ export class Scheduler {
     };
   }
 
-  clear() {
-
-    for (const id of this.#timers) {
-      clearTimeout(id);
-    }
-
+  clear () {
+    for (const id of this.#timers) clearTimeout(id);
     this.#timers.clear();
   }
 
 }
+
+export { Scheduler };
