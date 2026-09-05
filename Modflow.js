@@ -1,18 +1,21 @@
 // Modflow.js
 
+// :::::: IMPORT
+
 import { createModuleProxy as createProxy } from './proxy.js';
 import { ModflowUnknownModuleError }        from './errors.js';
 import { normalizeDefinition }              from './normalize.js';
 import { Scheduler }                        from './Scheduler.js';
 
-function normalizeModule (module) {
+// :::::: HELPERS
 
-  if (
-    module &&
-    typeof module === 'object' &&
-    'default' in module &&
-    Object.keys(module).length === 1
-  ) {
+const createElement = (tag, props) => Object.assign(document.createElement(tag), props);
+//const $root = document.documentElement;
+
+const hasDoc = () => typeof document !== 'undefined';
+
+function normalizeModule (module) {
+  if (module && typeof module === 'object' && 'default' in module && Object.keys(module).length === 1) {     
     return module.default;
   }
 
@@ -20,26 +23,12 @@ function normalizeModule (module) {
 }
 
 
-function withTimeout(
-  promise,
-  timeout,
-  name
-) {
-
+function withTimeout (promise, timeout, name) {
   return Promise.race([
-
     promise,
-
-    new Promise((_, reject) => {
-
+    new Promise((_, reject) => {q
       setTimeout(() => {
-
-        reject(
-          new Error(
-            `Module "${name}" exceeded load timeout of ${timeout}ms.`
-          )
-        );
-
+        reject(new Error(`Module "${name}" exceeded load timeout of ${timeout}ms.`));
       }, timeout);
     })
   ]);
@@ -67,13 +56,8 @@ export class Modflow {
 
   define (config = {}) {
 
-    if (
-      config === null ||
-      typeof config !== 'object'
-    ) {
-      throw new TypeError(
-        'mod.define() requires an object.'
-      );
+    if (config === null || typeof config !== 'object') {
+      throw new TypeError('mod.define() requires an object.');
     }
 
     for (const [name, input] of Object.entries(config)) {
@@ -113,40 +97,22 @@ export class Modflow {
   // ─────────────────────────────────────────────
 
   load (name) {
-
     const definition = this.definitions.get(name);
-
-    if (!definition) {
-      return Promise.reject(
-        new ModflowUnknownModuleError(name)
-      );
-    }
+    if (!definition) return Promise.reject(new ModflowUnknownModuleError(name));
 
     const entry = this.#ensureEntry(name);
 
-    /*
-     * Already fully loaded.
-     */
+    // already fully loaded
     if (entry.state === 'loaded') {
-      return Promise.resolve(
-        entry.value
-      );
+      return Promise.resolve(entry.value);
     }
 
-    /*
-     * Already loading.
-     *
-     * This is the important concurrency guarantee:
-     *
-     * 20 callers → 1 import()
-     */
+    // already loading
     if (entry.promise) {
       return entry.promise;
     }
 
-    /*
-     * Mark before loading dependencies.
-     */
+    // mark before loading dependencies
     entry.state     = 'loading';
     entry.startedAt = performance.now();
 
@@ -181,14 +147,9 @@ export class Modflow {
         entry.error      = error;
         entry.finishedAt = performance.now();
 
-        this.#emit('failed', {
-          name, definition, error });
+        this.#emit('failed', { name, definition, error });
 
-        /*
-         * Important:
-         * failed modules must be retryable.
-         */
-        entry.promise = null;
+        entry.promise = null; // important
 
         throw error;
       });
@@ -201,15 +162,10 @@ export class Modflow {
   // PRELOAD
   // ─────────────────────────────────────────────
 
-  preload(name) {
-
+  preload (name) {
     const definition = this.definitions.get(name);
-
-    if (!definition) {
-      return Promise.reject(
-        new ModflowUnknownModuleError(name)
-      );
-    }
+    if (!definition) return Promise.reject(new ModflowUnknownModuleError(name));
+    
 
     /*
      * browser modulepreload:
@@ -217,27 +173,14 @@ export class Modflow {
      * fetch + prepare the module,
      * but do not execute it yet.
      */
-    if (
-      typeof document !== 'undefined' &&
-      this.config.preloadStrategy === 'modulepreload'
-    ) {
+    if (typeof document !== 'undefined' && this.config.preloadStrategy === 'modulepreload') {
 
-      const href =
-        this.#resolveURL(definition.url);
+      const href = this.#resolveURL(definition.url);
 
       if (!this.#hasPreload(href)) {
-
-        const link = document.createElement('link');
-
-        link.rel = 'modulepreload';
-        link.href = href;
-
+        const link = createElement('link', { href, rel: 'modulepreload' });
         document.head.appendChild(link);
-
-        this.#emit('preloaded', {
-          name,
-          href,
-        });
+        this.#emit('preloaded', { name, href });
       }
     }
 
@@ -249,39 +192,20 @@ export class Modflow {
   // PREFETCH
   // ─────────────────────────────────────────────
 
-  prefetch(name) {
-
-    const definition =
-      this.definitions.get(name);
-
-    if (!definition) {
-      return Promise.reject(
-        new ModflowUnknownModuleError(name)
-      );
-    }
+  prefetch (name) {
+    const definition = this.definitions.get(name);
+    if (!definition) return Promise.reject(new ModflowUnknownModuleError(name));
 
     if (typeof document === 'undefined') {
       return Promise.resolve();
     }
 
-    const href =
-      this.#resolveURL(definition.url);
+    const href = this.#resolveURL(definition.url);
 
     if (!this.#hasPreload(href, 'prefetch')) {
-
-      const link =
-        document.createElement('link');
-
-      link.rel = 'prefetch';
-      link.as = 'script';
-      link.href = href;
-
+      const link = createElement('link', { href, as: 'script', rel: 'prefetch' );
       document.head.appendChild(link);
-
-      this.#emit('prefetched', {
-        name,
-        href,
-      });
+      this.#emit('prefetched', { name, href });
     }
 
     return this;
@@ -292,14 +216,9 @@ export class Modflow {
   // STATE
   // ─────────────────────────────────────────────
 
-  state(name) {
-
-    const entry =
-      this.entries.get(name);
-
-    if (!entry) {
-      return null;
-    }
+  state (name) {
+    const entry = this.entries.get(name);
+    if (!entry) { return null; }
 
     return {
       name,
@@ -322,15 +241,11 @@ export class Modflow {
   // STATS
   // ─────────────────────────────────────────────
 
-  stats() {
-
+  stats () {
     const output = {};
-
     for (const name of this.definitions.keys()) {
-      output[name] =
-        this.state(name);
+      output[name] = this.state(name);
     }
-
     return output;
   }
 
@@ -339,18 +254,13 @@ export class Modflow {
   // RETRY
   // ─────────────────────────────────────────────
 
-  retry(name) {
-
-    const entry =
-      this.entries.get(name);
-
-    if (!entry) {
-      return this.load(name);
-    }
+  retry (name) {
+    const entry = this.entries.get(name);
+    if (!entry) return this.load(name);
 
     entry.promise = null;
-    entry.error = null;
-    entry.state = 'defined';
+    entry.error   = null;
+    entry.state   = 'defined';
 
     return this.load(name);
   }
@@ -360,21 +270,17 @@ export class Modflow {
   // INVALIDATE
   // ─────────────────────────────────────────────
 
-  invalidate(name) {
-
-    const entry =
-      this.entries.get(name);
-
+  invalidate (name) {
+    const entry = this.entries.get(name);
     if (!entry) return;
 
-    entry.value = undefined;
-    entry.promise = null;
-    entry.error = null;
-
-    entry.state = 'defined';
+    entry.value     = undefined;
+    entry.promise   = null;
+    entry.error     = null;
+    entry.state     = 'defined';
     entry.startedAt = null;
-    entry.loadedAt = null;
-    entry.duration = null;
+    entry.loadedAt  = null;
+    entry.duration  = null;
   }
 
 
@@ -382,11 +288,8 @@ export class Modflow {
   // SCHEDULING
   // ─────────────────────────────────────────────
 
-  #schedule(name) {
-
-    const definition =
-      this.definitions.get(name);
-
+  #schedule (name) {
+    const definition = this.definitions.get(name);
     if (!definition) return;
 
     this.scheduler.schedule(
@@ -394,10 +297,7 @@ export class Modflow {
       () => this.load(name).catch(error => {
 
         if (this.config.debug) {
-          console.warn(
-            `[modflow] failed to load "${name}"`,
-            error
-          );
+          console.warn(`[modflow] failed to load "${name}"`, error);
         }
 
         this.config.onError?.(error,definition);
@@ -423,22 +323,11 @@ export class Modflow {
   // IMPORT
   // ─────────────────────────────────────────────
 
-  #import(definition) {
-
-    let promise =
-      import(
-        /* @vite-ignore */
-        definition.url
-      );
+  #import (definition) {
+    let promise = import(/* @vite-ignore */ definition.url);
 
     if (definition.timeout > 0) {
-
-      promise =
-        withTimeout(
-          promise,
-          definition.timeout,
-          definition.name
-        );
+      promise = withTimeout( promise, definition.timeout, definition.name);
     }
 
     return promise;
@@ -449,30 +338,21 @@ export class Modflow {
   // ENTRY
   // ─────────────────────────────────────────────
 
-  #ensureEntry(name) {
-
-    let entry =
-      this.entries.get(name);
+  #ensureEntry (name) {
+    let entry = this.entries.get(name);
 
     if (!entry) {
-
       entry = {
-
         state       : 'defined',
-
         value       : undefined,
         promise     : null,
         error       : null,
-
         startedAt   : null,
         loadedAt    : null,
         duration    : null,
       };
 
-      this.entries.set(
-        name,
-        entry
-      );
+      this.entries.set(name, entry);
     }
 
     return entry;
