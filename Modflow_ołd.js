@@ -2,9 +2,9 @@
 
 // :::::: IMPORT
 
-import { createModuleProxy as createProxy } from './proxy.js';
 import { ModflowUnknownModuleError }        from './errors.js';
 import { normalizeDefinition }              from './normalize.js';
+import { createModuleProxy as createProxy } from './proxy.js';
 import { Scheduler }                        from './Scheduler.js';
 
 // :::::: HELPERS
@@ -12,7 +12,8 @@ import { Scheduler }                        from './Scheduler.js';
 const createElement = (tag, props) => Object.assign(document.createElement(tag), props);
 //const $root = document.documentElement;
 
-const hasDoc = () => typeof document !== 'undefined';
+const hasDoc    = () => typeof document !== 'undefined';
+const hasWindow = () => typeof window   !== 'undefined';
 
 function normalizeModule (module) {
   if (module && typeof module === 'object' && 'default' in module && Object.keys(module).length === 1) {     
@@ -33,6 +34,8 @@ function withTimeout (promise, timeout, name) {
     })
   ]);
 }
+
+// :::::: MAIN CLASS
 
 export class Modflow {
 
@@ -81,16 +84,6 @@ export class Modflow {
 
     return this;
   }
-
-
-  // ─────────────────────────────────────────────
-  // HAS
-  // ─────────────────────────────────────────────
-
-  has (name) {
-    return this.definitions.has(name);
-  }
-
 
   // ─────────────────────────────────────────────
   // LOAD
@@ -389,11 +382,7 @@ export class Modflow {
 
 
   // ─────────────────────────────────────────────
-  // PROXY
-  // ─────────────────────────────────────────────
-
-  proxy () {
-    return createProxy(this);
-  }
+  has   (name) { return this.definitions.has(name); }
+  proxy ()     { return createProxy(this); }
 
 }
