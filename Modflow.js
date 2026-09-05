@@ -249,22 +249,15 @@ export class Modflow {
   }
 
   #ensureEntry (name) {
-    let entry = this.entries.get(name);
-    if (!entry) {
-      entry = new ModuleEntry();
-      this.entries.set(name, entry);
-    }
-    return entry;
+    return this.entries.getOrInsertComputed(name, () => new ModuleEntry());
   }
 
   #resolveURL (url) {
-    if (!isBrowser()) return url;
-    return new URL(url, document.baseURI).href;
+    return !isBrowser() ? url : new URL(url, document.baseURI).href;
   }
 
   #hasPreload (href, rel = 'modulepreload') {
-    if (!hasDoc()) return false;
-    return !!document.querySelector(`link[rel="${rel}"][href="${CSS.escape(href)}"]`);
+    return !hasDoc() ? false : !!document.querySelector(`link[rel="${rel}"][href="${CSS.escape(href)}"]`);      
   }
 
   #emit (type, data) {
