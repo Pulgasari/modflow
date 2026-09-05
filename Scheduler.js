@@ -10,8 +10,8 @@ const isSymbol = sth => typeof sth === 'symbol';
 const
 onEvent   = (...args) => window.   addEventListener(...args),
 offEvent  = (...args) => window.removeEventListener(...args),     
-onEvents  = (events, ...rest) => for (const event of events) onEvent  (event, ...rest),        
-offEvents = (events, ...rest) => for (const event of events) offEvent (event, ...rest);
+onEvents  = (events, ...rest) => events.forEach(event => onEvent  (event, ...rest)),        
+offEvents = (events, ...rest) => events.forEach(event => offEvent (event, ...rest));
 
 class Scheduler {
 
