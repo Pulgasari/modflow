@@ -41,6 +41,19 @@ class Scheduler {
     return null;
   }
 
+  schedule (flow, callback) {
+    if (!isFn(callback)) throw new TypeError('Scheduler callback must be a function.');
+  
+    switch (flow) {
+      case 'eager'       : return callback();
+      case 'idle'        : return this.#idle(callback);
+      case 'interaction' : return this.#interaction(callback);
+      case 'lazy'        : return null; // Lazy should never be scheduled automatically
+      default            : return isNumber(flow) ? this.#timeout(callback, flow) : null;
+    }
+  }
+
+
   #idle (callback) {
 
     if (
