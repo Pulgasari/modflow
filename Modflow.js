@@ -95,11 +95,11 @@ class ModuleEntry {
 
 export class Modflow {
 
-  definitions = new Map();
-  entries     = new Map();
-  scheduler   = new Scheduler();
+  definitions = new Map;
+  entries     = new Map;
+  scheduler   = new Scheduler;
 
-  constructor(options = {}) {
+  constructor (options = {}) {
     this.config = {
       preloadStrategy : options.preloadStrategy ?? 'modulepreload',
       debug           : options.debug           ?? false,
@@ -203,7 +203,8 @@ export class Modflow {
     try {
       const definition = this.#getDefinitionOrThrow(name);
       return callback(definition);
-    } catch (error) { return Promise.reject(error); }
+    }
+    catch (error) { return Promise.reject(error); }
   }
 
   #injectResourceHint (name, rel, extraProps = {}, eventName = `${rel}ed`) {
